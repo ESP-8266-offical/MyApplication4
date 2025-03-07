@@ -1,9 +1,14 @@
 package com.example.zhilan.ui.status
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -13,7 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -21,49 +28,127 @@ import com.example.zhilan.model.WeekType
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
-import androidx.compose.ui.platform.LocalContext
 
+/**
+ * 状态页面
+ * @param onSportsClick 体育点击事件回调
+ * @param onGradeClick 成绩点击事件回调
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatusScreen(
     onSportsClick: () -> Unit,
     onGradeClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-            .padding(horizontal = 16.dp)
-    ) {
-        // 状态栏安全区域
-        Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
-        
-        // 顶部问候语和日期
-        TopSection()
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 知澜建议（暂时为空）
-        SuggestionSection()
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 功能按钮
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+    // 创建AI聊天ViewModel
+    val aiChatViewModel: AIChatViewModel = viewModel(factory = AIChatViewModelFactory(LocalContext.current))
+    
+    // 是否显示AI聊天界面
+    var showAiChat by remember { mutableStateOf(false) }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 主界面内容
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
         ) {
-            Button(onClick = onSportsClick) {
-                Text("体育")
+            // 状态栏安全区域
+            Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
+            
+            // 顶部问候语和日期
+            TopSection()
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 知澜AI建议卡片
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showAiChat = true },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChatBubble,
+                            contentDescription = "知澜AI建议",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            text = "知澜AI建议",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "点击这里与知澜AI助手对话，获取校园生活帮助和建议",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
-            Button(onClick = onGradeClick) {
-                Text("成绩")
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 功能按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(onClick = onSportsClick) {
+                    Text("体育")
+                }
+                Button(onClick = onGradeClick) {
+                    Text("成绩")
+                }
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 今日课程
+            TodayCourseSection()
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 今日课程
-        TodayCourseSection()
+        // AI聊天界面
+        if (showAiChat) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Column {
+                    // 顶部栏
+                    SmallTopAppBar(
+                        title = { Text("知澜AI助手") },
+                        navigationIcon = {
+                            IconButton(onClick = { showAiChat = false }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "返回"
+                                )
+                            }
+                        }
+                    )
+                    
+                    // AI聊天界面
+                    AIChatSection(
+                        modifier = Modifier.fillMaxSize(),
+                        viewModel = aiChatViewModel
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -281,6 +366,6 @@ private fun getGradientColors(colorIndex: Int): List<Color> {
     return if (colorIndex in gradientPairs.indices) {
         listOf(gradientPairs[colorIndex].first, gradientPairs[colorIndex].second)
     } else {
-        listOf(gradientPairs[0].first, gradientPairs[0].second)
+        listOf(gradientPairs[0].first, gradientPairs[0].second)  // 修复语法错误：list of -> listOf
     }
 }
