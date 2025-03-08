@@ -27,6 +27,8 @@ import com.example.zhilan.ui.status.StatusScreen
 import com.example.zhilan.ui.theme.ZhiLanTheme
 import com.example.zhilan.ui.schedule.ScheduleViewModelFactory
 import com.example.zhilan.ui.settings.SettingsScreen
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
 
 enum class NavigationItem(val icon: ImageVector, val label: String, val route: String) {
     Schedule(Icons.Default.DateRange, "课程表", "schedule"),
@@ -39,6 +41,18 @@ class MainActivity : ComponentActivity() {
     private var lastNavigationTime = 0L
     private val scheduleViewModel: ScheduleViewModel by viewModels { ScheduleViewModelFactory(this) }
     private val settingsViewModel: SettingsViewModel by viewModels()
+
+    private val editCourseLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val dataChanged = result.data?.getBooleanExtra("RESULT_COURSE_CHANGED", false) ?: false
+            if (dataChanged) {
+                // Force reload courses from database
+                scheduleViewModel.reloadCourses()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,13 +101,13 @@ class MainActivity : ComponentActivity() {
                                     courses = scheduleViewModel.courses.collectAsState().value,
                                     currentWeek = scheduleViewModel.currentWeek.collectAsState().value,
                                     onCourseClick = { course ->
-                                        startActivity(ScheduleEditActivity.createIntent(this@MainActivity, course))
+                                        editCourseLauncher.launch(ScheduleEditActivity.createIntent(this@MainActivity, course))
                                     },
                                     onWeekChange = { newWeek ->
                                         scheduleViewModel.setCurrentWeek(newWeek)
                                     },
                                     onAddCourse = {
-                                        startActivity(ScheduleEditActivity.createIntent(this@MainActivity))
+                                        editCourseLauncher.launch(ScheduleEditActivity.createIntent(this@MainActivity))
                                     }
                                 )
                             }
@@ -128,7 +142,7 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("settings") {
                                 val settings by settingsViewModel.settings.collectAsState()
-                                
+
                                 SettingsScreen(
                                     settings = settings,
                                     onSettingsChange = { newSettings ->
