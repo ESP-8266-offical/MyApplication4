@@ -3,6 +3,7 @@ package com.example.zhilan.data
 import android.content.Context
 import com.example.zhilan.model.Task
 import com.example.zhilan.model.TaskIconType
+import com.example.zhilan.model.TaskType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +27,8 @@ class TaskRepository(private val context: Context) {
                 location = "at Julo meeting rooms",
                 iconType = TaskIconType.EXAM,
                 dueDate = System.currentTimeMillis() + 86400000, // 明天
-                isCompleted = false
+                isCompleted = false,
+                taskType = TaskType.HOMEWORK
             ),
             Task(
                 id = 2,
@@ -34,7 +36,8 @@ class TaskRepository(private val context: Context) {
                 location = "at Google Lino",
                 iconType = TaskIconType.HOMEWORK,
                 dueDate = System.currentTimeMillis() + 172800000, // 后天
-                isCompleted = false
+                isCompleted = false,
+                taskType = TaskType.HOMEWORK
             ),
             Task(
                 id = 3,
@@ -42,7 +45,8 @@ class TaskRepository(private val context: Context) {
                 location = "at Info lab Peru",
                 iconType = TaskIconType.ACTIVITY,
                 dueDate = System.currentTimeMillis() + 259200000, // 三天后
-                isCompleted = false
+                isCompleted = false,
+                taskType = TaskType.SCHEDULE
             )
         )
         _tasks.value = sampleTasks

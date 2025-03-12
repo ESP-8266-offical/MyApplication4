@@ -65,11 +65,10 @@ fun AboutScreen(onBackPressed: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 应用图标
-            Icon(
-                imageVector = Icons.Default.Info,
+            Image(
+                painter = painterResource(id = R.drawable.filled_sunset),
                 contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.primary
+                modifier = Modifier.size(80.dp)
             )
             
             Spacer(modifier = Modifier.height(16.dp))
