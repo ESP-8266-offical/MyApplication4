@@ -10,6 +10,7 @@ import com.example.zhilan.model.WeekType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -25,8 +26,10 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            val dbCourses = courseRepository.getAllCourses()
-            _courses.value = dbCourses
+            // 订阅数据库变化
+            courseRepository.getAllCourses().collectLatest { dbCourses ->
+                _courses.value = dbCourses
+            }
         }
     }
 
@@ -39,12 +42,8 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
                 return@launch
             }
             
-            val id = courseRepository.addCourse(course)
-            if (id > 0) {
-                // 重新从数据库加载所有课程
-                val dbCourses = courseRepository.getAllCourses()
-                _courses.value = dbCourses
-            }
+            courseRepository.addCourse(course)
+            // 不需要手动更新_courses，因为已经通过Flow订阅了数据变化
         }
     }
 
@@ -57,19 +56,15 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
                 return@launch
             }
             
-            courseRepository.updateCourse(course) // 使用专门的更新方法
-            _courses.update { currentList ->
-                currentList.map { if (it.id == course.id) course else it }
-            }
+            courseRepository.updateCourse(course)
+            // 不需要手动更新_courses，因为已经通过Flow订阅了数据变化
         }
     }
 
     fun deleteCourse(courseId: Int) {
         viewModelScope.launch {
             courseRepository.deleteCourse(courseId)
-            _courses.update { currentList ->
-                currentList.filter { it.id != courseId }
-            }
+            // 不需要手动更新_courses，因为已经通过Flow订阅了数据变化
         }
     }
 
@@ -133,5 +128,13 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
             }
         }
         return weeks
+    }
+    
+    fun reloadCourses() {
+        viewModelScope.launch {
+            // 重新从数据库加载课程数据
+            // 由于已经通过Flow订阅了数据变化，实际上不需要额外操作
+            // 但为了兼容现有代码，保留此方法
+        }
     }
 }

@@ -29,6 +29,7 @@ fun ScheduleScreen(
     onWeekChange: (Int) -> Unit,
     onAddCourse: () -> Unit
 ) {
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // 顶部栏

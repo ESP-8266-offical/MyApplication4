@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 允许所有明文流量 -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- 对特定域名的配置 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 原有域名 -->
+        <domain includeSubdomains="true">115.190.93.105</domain>
+        <domain includeSubdomains="true">dify.zhi-lan.online</domain>
+        <!-- 添加新的API域名 -->
+        <domain includeSubdomains="true">test.nikopack.engineer</domain>
+        <!-- 添加其他需要的域名 -->
+    </domain-config>
+</network-security-config>

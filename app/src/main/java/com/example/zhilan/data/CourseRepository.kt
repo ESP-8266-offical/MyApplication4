@@ -6,10 +6,20 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.zhilan.model.Course
 import com.example.zhilan.model.WeekType
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class CourseRepository(context: Context) {
     private val dbHelper = CourseDBHelper(context)
     private val db: SQLiteDatabase = dbHelper.writableDatabase
+
+    private val _courses = MutableStateFlow<List<Course>>(emptyList())
+    val courses: StateFlow<List<Course>> = _courses.asStateFlow()
+
+    init {
+        _courses.value = loadCoursesFromDb()
+    }
 
     fun addCourse(course: Course): Long {
         val values = ContentValues().apply {
@@ -41,7 +51,11 @@ class CourseRepository(context: Context) {
             put("isDoubleWeek", if (course.weekType == WeekType.EVEN) 1 else 0)
         }
         
-        return db.insert("coursedata", null, values)
+        val id = db.insert("coursedata", null, values)
+        if (id > 0) {
+            _courses.value = loadCoursesFromDb()
+        }
+        return id
     }
 
     fun updateCourse(course: Course): Int {
@@ -74,14 +88,24 @@ class CourseRepository(context: Context) {
             put("isDoubleWeek", if (course.weekType == WeekType.EVEN) 1 else 0)
         }
         
-        return db.update("coursedata", values, "id = ?", arrayOf(course.id.toString()))
+        val result = db.update("coursedata", values, "id = ?", arrayOf(course.id.toString()))
+        if (result > 0) {
+            _courses.value = loadCoursesFromDb()
+        }
+        return result
     }
 
     fun deleteCourse(courseId: Int): Int {
-        return db.delete("coursedata", "id = ?", arrayOf(courseId.toString()))
+        val result = db.delete("coursedata", "id = ?", arrayOf(courseId.toString()))
+        if (result > 0) {
+            _courses.value = loadCoursesFromDb()
+        }
+        return result
     }
 
-    fun getAllCourses(): List<Course> {
+    fun getAllCourses(): StateFlow<List<Course>> = courses
+
+    private fun loadCoursesFromDb(): List<Course> {
         val courses = mutableListOf<Course>()
         val cursor = db.query("coursedata", null, null, null, null, null, null)
         

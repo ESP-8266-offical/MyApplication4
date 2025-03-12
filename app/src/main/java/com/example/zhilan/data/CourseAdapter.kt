@@ -5,6 +5,10 @@ import androidx.compose.ui.graphics.Color
 import com.example.zhilan.ScheduleCourse
 import com.example.zhilan.model.Course
 import com.example.zhilan.model.WeekType
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 /**
  * 课程适配器类，用于将数据库中的Course对象转换为UI显示所需的ScheduleCourse对象
@@ -17,31 +21,40 @@ class CourseAdapter(private val context: Context) {
      * @param week 周数
      * @return 当前周的课程列表
      */
-    fun getCoursesForWeek(week: Int): List<ScheduleCourse> {
-        val allCourses = repository.getAllCourses()
-        return allCourses
-            .filter { course ->
-                // 根据周数和周类型过滤课程
-                when {
-                    week < course.startWeek || week > course.endWeek -> false
-                    course.weekType == WeekType.ALL -> true
-                    course.weekType == WeekType.ODD && week % 2 == 1 -> true
-                    course.weekType == WeekType.EVEN && week % 2 == 0 -> true
-                    else -> false
+    fun getCoursesForWeek(week: Int, onCoursesUpdated: (List<ScheduleCourse>) -> Unit) {
+        // 订阅数据流变化
+        kotlinx.coroutines.GlobalScope.launch {
+            repository.getAllCourses().collect { allCourses ->
+                val filteredCourses = allCourses
+                    .filter { course ->
+                        // 根据周数和周类型过滤课程
+                        when {
+                            week < course.startWeek || week > course.endWeek -> false
+                            course.weekType == WeekType.ALL -> true
+                            course.weekType == WeekType.ODD && week % 2 == 1 -> true
+                            course.weekType == WeekType.EVEN && week % 2 == 0 -> true
+                            else -> false
+                        }
+                    }
+                    .map { course ->
+                        // 将Course转换为ScheduleCourse
+                        ScheduleCourse(
+                            name = course.name,
+                            teacher = course.teacher,
+                            location = course.location,
+                            dayOfWeek = course.dayOfWeek,
+                            startTime = course.startSection,
+                            endTime = course.endSection,
+                            color = getCourseColor(course.color)
+                        )
+                    }
+                
+                // 通知UI更新
+                kotlinx.coroutines.MainScope().launch {
+                    onCoursesUpdated(filteredCourses)
                 }
             }
-            .map { course ->
-                // 将Course转换为ScheduleCourse
-                ScheduleCourse(
-                    name = course.name,
-                    teacher = course.teacher,
-                    location = course.location,
-                    dayOfWeek = course.dayOfWeek,
-                    startTime = course.startSection,
-                    endTime = course.endSection,
-                    color = getCourseColor(course.color)
-                )
-            }
+        }
     }
     
     /**

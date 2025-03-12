@@ -20,6 +20,8 @@ import com.example.zhilan.model.Course
 import com.example.zhilan.model.WeekType
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.zhilan.ui.schedule.ColorUtils.getGradientColors
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.zhilan.ui.theme.ZhiLanTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -221,7 +223,56 @@ fun ScheduleEditScreen(
             }
     
             Spacer(modifier = Modifier.height(16.dp))
-    
+                // 颜色选择
+                var selectedColorIndex by remember { mutableStateOf(course?.color ?: 0) }
+                var colorAlpha by remember { mutableStateOf(0.5f) }
+
+                Text(
+                    text = "课程颜色",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(6) { index ->
+                        val gradientPair = getGradientColors(index)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = gradientPair.map { it.copy(alpha = 0.5f) }
+                                    )
+                                )
+                                .clickable { selectedColorIndex = index }
+                                .border(
+                                    width = 2.dp,
+                                    color = if (selectedColorIndex == index) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "透明度: ${(colorAlpha * 100).toInt()}%",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Slider(
+                    value = colorAlpha,
+                    onValueChange = { colorAlpha = it },
+                    valueRange = 0.2f..0.8f
+                )
             // 单双周选择
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -281,7 +332,7 @@ fun ScheduleEditScreen(
                                 startWeek = startWeek,
                                 endWeek = endWeek,
                                 weekType = weekType,
-                                color = course?.color ?: 0
+                                color = selectedColorIndex
                             )
                         )
                     },
@@ -294,56 +345,47 @@ fun ScheduleEditScreen(
         }
     }
     
-    // 颜色选择
-    var selectedColorIndex by remember { mutableStateOf(course?.color ?: 0) }
-    var colorAlpha by remember { mutableStateOf(0.5f) }
-    
-    Text(
-        text = "课程颜色",
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
-    )
-    
-    Spacer(modifier = Modifier.height(8.dp))
-    
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(6) { index ->
-            val gradientPair = getGradientColors(index)
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = gradientPair.map { it.copy(alpha = 0.5f) }
-                        )
-                    )
-                    .clickable { selectedColorIndex = index }
-                    .border(
-                        width = 2.dp,
-                        color = if (selectedColorIndex == index) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-            )
-        }
+
     }
     
-    Spacer(modifier = Modifier.height(16.dp))
+
     
-    Text(
-        text = "透明度: ${(colorAlpha * 100).toInt()}%",
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
-    )
-    
-    Slider(
-        value = colorAlpha,
-        onValueChange = { colorAlpha = it },
-        valueRange = 0.2f..0.8f
-    )
-    
+    }
+
+@Preview(showBackground = true)
+@Composable
+fun ScheduleEditScreenEditPreview() {
+    ZhiLanTheme {
+        ScheduleEditScreen(
+            course = Course(
+                id = 1,
+                name = "数据结构",
+                teacher = "张教授",
+                location = "主教学楼 301",
+                dayOfWeek = 2,
+                startSection = 1,
+                endSection = 2,
+                startWeek = 1,
+                endWeek = 16,
+                weekType = WeekType.ALL,
+                color = 0
+            ),
+            onSave = {},
+            onCancel = {},
+            onDelete = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ScheduleEditScreenAddPreview() {
+    ZhiLanTheme {
+        ScheduleEditScreen(
+            course = null,
+            onSave = {},
+            onCancel = {},
+            onDelete = null
+        )
     }
 }
