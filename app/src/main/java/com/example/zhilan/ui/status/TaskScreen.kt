@@ -132,7 +132,7 @@ fun TaskScreen() {
             Spacer(modifier = Modifier.height(24.dp))
             
             // 作业区域
-            Row 吗(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically

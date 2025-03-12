@@ -25,14 +25,14 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            val dbCourses = courseRepository.getAllCourses()
+            val dbCourses = courseRepository.getAllCourses().value
             _courses.value = dbCourses
         }
     }
 
     fun reloadCourses() {
         viewModelScope.launch {
-            _courses.value = courseRepository.getAllCourses()
+            _courses.value = courseRepository.getAllCourses().value
         }
     }
 
@@ -48,7 +48,7 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
             val id = courseRepository.addCourse(course)
             if (id > 0) {
                 // 重新从数据库加载所有课程
-                val dbCourses = courseRepository.getAllCourses()
+                val dbCourses = courseRepository.getAllCourses().value
                 _courses.value = dbCourses
             }
         }
