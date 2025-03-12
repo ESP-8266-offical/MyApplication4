@@ -1,6 +1,5 @@
 package com.example.zhilan
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -47,16 +46,21 @@ class ScheduleEditActivity : ComponentActivity() {
                                 viewModel.addCourse(updatedCourse)
                             }
                             Toast.makeText(this@ScheduleEditActivity, "课程已保存", Toast.LENGTH_SHORT).show()
-                            setResult(Activity.RESULT_OK)
+                            val resultIntent = Intent()
+                            resultIntent.putExtra("RESULT_COURSE_CHANGED", true)
+                            setResult(RESULT_OK, resultIntent)
                             finish()
                         },
                         onCancel = {
+                            setResult(RESULT_CANCELED)
                             finish()
                         },
                         onDelete = { courseId ->
                             viewModel.deleteCourse(courseId)
                             Toast.makeText(this@ScheduleEditActivity, "课程已删除", Toast.LENGTH_SHORT).show()
-                            setResult(Activity.RESULT_OK)
+                            val resultIntent = Intent()
+                            resultIntent.putExtra("RESULT_COURSE_CHANGED", true)
+                            setResult(RESULT_OK, resultIntent)
                             finish()
                         }
                     )
@@ -71,5 +75,6 @@ class ScheduleEditActivity : ComponentActivity() {
                 putExtra("course", course)
             }
         }
+        const val REQUEST_CODE_EDIT_SCHEDULE = 1001
     }
 }
