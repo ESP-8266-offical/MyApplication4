@@ -9,6 +9,7 @@ import com.example.zhilan.model.WeekType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -23,8 +24,12 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
     private val courseRepository: CourseRepository = CourseRepository(context)
 
     init {
-        // 从数据库加载课程
-        _courses.value = courseRepository.getAllCourses()
+        // 订阅数据库变化
+        viewModelScope.launch {
+            courseRepository.getAllCourses().collectLatest { dbCourses ->
+                _courses.value = dbCourses
+            }
+        }
         
         // 设置当前周数
         setCurrentWeek(calculateCurrentWeek())
@@ -32,28 +37,22 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
 
     fun addCourse(course: Course) {
         viewModelScope.launch {
-            val id = courseRepository.addCourse(course)
-            if (id > 0) {
-                _courses.update { currentList ->
-                    currentList + course.copy(id = id.toInt())
-                }
-            }
+            courseRepository.addCourse(course)
+            // 不需要手动更新_courses，因为已经通过Flow订阅了数据变化
         }
     }
 
     fun updateCourse(course: Course) {
         viewModelScope.launch {
-            _courses.update { currentList ->
-                currentList.map { if (it.id == course.id) course else it }
-            }
+            courseRepository.updateCourse(course)
+            // 不需要手动更新_courses，因为已经通过Flow订阅了数据变化
         }
     }
 
     fun deleteCourse(courseId: Int) {
         viewModelScope.launch {
-            _courses.update { currentList ->
-                currentList.filter { it.id != courseId }
-            }
+            courseRepository.deleteCourse(courseId)
+            // 不需要手动更新_courses，因为已经通过Flow订阅了数据变化
         }
     }
 

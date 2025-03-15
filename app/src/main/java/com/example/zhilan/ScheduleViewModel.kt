@@ -30,8 +30,14 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
     }
     init {
         viewModelScope.launch {
-            val dbCourses = courseRepository.getAllCourses()
+            val dbCourses = courseRepository.getAllCourses().value
             _courses.value = dbCourses
+        }
+    }
+
+    fun reloadCourses() {
+        viewModelScope.launch {
+            _courses.value = courseRepository.getAllCourses().value
         }
     }
 
@@ -43,11 +49,11 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
                 // 如果有冲突，可以通过回调通知UI层
                 return@launch
             }
-            
+
             val id = courseRepository.addCourse(course)
             if (id > 0) {
                 // 重新从数据库加载所有课程
-                val dbCourses = courseRepository.getAllCourses()
+                val dbCourses = courseRepository.getAllCourses().value
                 _courses.value = dbCourses
             }
         }
@@ -61,7 +67,7 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
                 // 如果有冲突，可以通过回调通知UI层
                 return@launch
             }
-            
+
             courseRepository.updateCourse(course) // 使用专门的更新方法
             _courses.update { currentList ->
                 currentList.map { if (it.id == course.id) course else it }
@@ -83,7 +89,7 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
             _currentWeek.value = week.coerceIn(1, 20)
         }
     }
-    
+
     /**
      * 检查课程时间是否与现有课程冲突
      * @param course 要检查的课程
@@ -93,26 +99,26 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
     private fun checkTimeConflict(course: Course, excludeCourseId: Int = -1): Boolean {
         // 获取当前所有课程
         val currentCourses = _courses.value
-        
+
         // 筛选出与新课程在同一天的课程，并排除自身（如果是更新操作）
-        val sameDayCourses = currentCourses.filter { 
-            it.dayOfWeek == course.dayOfWeek && it.id != excludeCourseId 
+        val sameDayCourses = currentCourses.filter {
+            it.dayOfWeek == course.dayOfWeek && it.id != excludeCourseId
         }
-        
+
         // 检查是否有时间重叠的课程
         return sameDayCourses.any { existingCourse ->
             // 检查周次重叠
             val weeksOverlap = hasWeekOverlap(course, existingCourse)
-            
+
             // 检查节次重叠
-            val sectionsOverlap = !(course.endSection < existingCourse.startSection || 
-                                  course.startSection > existingCourse.endSection)
-            
+            val sectionsOverlap = !(course.endSection < existingCourse.startSection ||
+                    course.startSection > existingCourse.endSection)
+
             // 同时满足周次重叠和节次重叠才算冲突
             weeksOverlap && sectionsOverlap
         }
     }
-    
+
     /**
      * 检查两个课程的周次是否重叠
      */
@@ -120,11 +126,11 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
         // 获取两个课程的实际周次列表
         val weeks1 = getActualWeeks(course1)
         val weeks2 = getActualWeeks(course2)
-        
+
         // 检查是否有交集
         return weeks1.any { it in weeks2 }
     }
-    
+
     /**
      * 获取课程的实际周次列表
      */

@@ -154,22 +154,6 @@ fun StatusScreen(
             }
             
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // 功能按钮
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(onClick = onSportsClick) {
-                    Text("体育")
-                }
-                Button(onClick = onGradeClick) {
-                    Text("成绩")
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
             // 今日课程
             TodayCourseSection()
 
