@@ -39,7 +39,7 @@ class CourseAdapter(private val context: Context) {
                     dayOfWeek = course.dayOfWeek,
                     startTime = course.startSection,
                     endTime = course.endSection,
-                    color = getCourseColor(course.color)
+                    color = Color(course.color)
                 )
             }
     }

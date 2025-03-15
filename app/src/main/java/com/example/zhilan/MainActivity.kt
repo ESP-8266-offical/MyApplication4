@@ -1,11 +1,15 @@
 package com.example.zhilan
 
+import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -39,7 +43,23 @@ class MainActivity : ComponentActivity() {
     private var lastNavigationTime = 0L
     private val scheduleViewModel: ScheduleViewModel by viewModels { ScheduleViewModelFactory(this) }
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private val editCourseActivityLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            scheduleViewModel.refreshCourses()
+        }
+    }
+    private val usageStatsViewModel: UsageStatsViewModel by viewModels {
+        UsageStatsViewModelFactory(this)
+    }
 
+    override fun onResume() {
+        super.onResume()
+        scheduleViewModel.refreshCourses() // 刷新课程数据
+        usageStatsViewModel.checkPermission()
+    }
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -93,12 +113,22 @@ class MainActivity : ComponentActivity() {
                                         scheduleViewModel.setCurrentWeek(newWeek)
                                     },
                                     onAddCourse = {
-                                        startActivity(ScheduleEditActivity.createIntent(this@MainActivity))
+                                        editCourseActivityLauncher.launch(ScheduleEditActivity.createIntent(this@MainActivity))
                                     }
                                 )
                             }
                             composable("status") {
+                                val hasPermission by usageStatsViewModel.hasPermission.collectAsState()
+                                val todayUsage = usageStatsViewModel.todayUsageTime.collectAsState()
+                                val secUsageTime = if (hasPermission)
+                                    usageStatsViewModel.getSecUsageTime(todayUsage.value)
+                                else
+                                    "没有授权呢宝宝，点击我让我去获取授权吧~"
+
                                 StatusScreen(
+                                    usageStatsViewModel = usageStatsViewModel,
+                                    isPermissionGot = hasPermission,
+                                    dailyUsageTime = secUsageTime as Long,
                                     onSportsClick = {
                                         Toast.makeText(this@MainActivity, "体育功能开发中", Toast.LENGTH_SHORT).show()
                                     },
@@ -107,6 +137,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
                             composable("profile") {
                                 ProfileScreen(
                                     onScheduleClick = {

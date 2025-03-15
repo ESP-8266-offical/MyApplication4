@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.example.zhilan.model.Course
 import com.example.zhilan.model.WeekType
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.whucampus.ui.theme.ZhiLanTheme
 import com.example.zhilan.ui.schedule.ColorUtils.getGradientColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -245,7 +247,56 @@ fun ScheduleEditScreen(
             }
     
             Spacer(modifier = Modifier.weight(1f))
-    
+                // 颜色选择
+                var selectedColorIndex by remember { mutableStateOf(course?.color ?: 0) }
+                var colorAlpha by remember { mutableStateOf(0.5f) }
+
+                Text(
+                    text = "课程颜色",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(6) { index ->
+                        val gradientPair = getGradientColors(index)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = gradientPair.map { it.copy(alpha = 0.5f) }
+                                    )
+                                )
+                                .clickable { selectedColorIndex = index }
+                                .border(
+                                    width = 2.dp,
+                                    color = if (selectedColorIndex == index) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "透明度: ${(colorAlpha * 100).toInt()}%",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Slider(
+                    value = colorAlpha,
+                    onValueChange = { colorAlpha = it },
+                    valueRange = 0.2f..0.8f
+                )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -294,56 +345,21 @@ fun ScheduleEditScreen(
         }
     }
     
-    // 颜色选择
-    var selectedColorIndex by remember { mutableStateOf(course?.color ?: 0) }
-    var colorAlpha by remember { mutableStateOf(0.5f) }
+
     
-    Text(
-        text = "课程颜色",
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
-    )
-    
-    Spacer(modifier = Modifier.height(8.dp))
-    
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(6) { index ->
-            val gradientPair = getGradientColors(index)
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = gradientPair.map { it.copy(alpha = 0.5f) }
-                        )
-                    )
-                    .clickable { selectedColorIndex = index }
-                    .border(
-                        width = 2.dp,
-                        color = if (selectedColorIndex == index) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp)
-                    )
+    }
+}
+
+@Composable
+@Preview
+fun ScheduleEditScreenPreview() {
+    ZhiLanTheme {
+        Surface {
+            ScheduleEditScreen(
+                course = null,
+                onSave = {},
+                onCancel = {}
             )
         }
-    }
-    
-    Spacer(modifier = Modifier.height(16.dp))
-    
-    Text(
-        text = "透明度: ${(colorAlpha * 100).toInt()}%",
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
-    )
-    
-    Slider(
-        value = colorAlpha,
-        onValueChange = { colorAlpha = it },
-        valueRange = 0.2f..0.8f
-    )
-    
     }
 }
