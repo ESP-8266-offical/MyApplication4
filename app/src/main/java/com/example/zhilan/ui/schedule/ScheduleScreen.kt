@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.zhilan.model.Course
 import com.example.zhilan.model.WeekType
 import com.example.zhilan.ui.schedule.ColorUtils.getGradientColors
@@ -245,4 +246,16 @@ fun CourseCard(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun ScheduleScreenPreview(){
+    ScheduleScreen(
+        courses = emptyList(),
+        currentWeek = 1,
+        onCourseClick = {},
+        onWeekChange = {},
+        onAddCourse = {}
+    )
 }

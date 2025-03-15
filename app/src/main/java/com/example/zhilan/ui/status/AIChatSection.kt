@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 
 // 不需要再定义ChatMessage数据类，直接使用AIChatViewModel.kt中的定义
 
@@ -91,12 +90,7 @@ fun AIChatSection(
                 }
             } else {
                 items(messages) { message ->
-                    // 传递消息索引和ViewModel给ChatBubble组件
-                    val index = messages.indexOf(message)
-                    ChatBubble(
-                        message = message,
-                        onRenderComplete = { viewModel.updateMessageRenderedStatus(index, true) }
-                    )
+                    ChatBubble(message = message)
                 }
                 
                 // 显示加载指示器
@@ -172,45 +166,9 @@ fun AIChatSection(
 /**
  * 聊天气泡组件
  * @param message 消息对象
- * @param onRenderComplete 渲染完成回调
  */
 @Composable
-fun ChatBubble(
-    message: ChatMessage,
-    onRenderComplete: () -> Unit = {}
-) {
-    // 如果是用户消息，直接显示全部内容；如果是AI消息，则使用动画效果逐字显示
-    val displayText = if (message.isFromUser) {
-        message.content
-    } else {
-        // 使用remember和LaunchedEffect实现逐字显示效果
-        var animatedText by remember { mutableStateOf("") }
-        var isAnimationComplete by remember { mutableStateOf(false) }
-        
-        // 只有当消息未被渲染过时，才执行动画效果
-        LaunchedEffect(message.content, message.isRendered) {
-            // 如果消息已经被渲染过，直接显示完整内容
-            if (message.isRendered) {
-                animatedText = message.content
-                isAnimationComplete = true
-            } else {
-                animatedText = ""
-                isAnimationComplete = false
-                
-                message.content.forEachIndexed { index, char ->
-                    animatedText += char
-                    delay(30) // 每个字符之间的延迟，可以调整速度
-                }
-                isAnimationComplete = true
-                
-                // 标记消息已被渲染
-                onRenderComplete()
-            }
-        }
-        
-        animatedText
-    }
-    
+fun ChatBubble(message: ChatMessage) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -233,7 +191,7 @@ fun ChatBubble(
             )
         ) {
             Text(
-                text = displayText,
+                text = message.content,
                 modifier = Modifier.padding(12.dp),
                 color = if (message.isFromUser) 
                     MaterialTheme.colorScheme.onPrimaryContainer 

@@ -1,11 +1,15 @@
 package com.example.zhilan
 
+import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -24,17 +28,13 @@ import com.example.zhilan.model.Course
 import com.example.zhilan.ui.schedule.ScheduleScreen
 import com.example.zhilan.ui.profile.ProfileScreen
 import com.example.zhilan.ui.status.StatusScreen
-import com.example.zhilan.ui.status.TaskScreen
 import com.example.zhilan.ui.theme.ZhiLanTheme
 import com.example.zhilan.ui.schedule.ScheduleViewModelFactory
 import com.example.zhilan.ui.settings.SettingsScreen
-import androidx.activity.result.contract.ActivityResultContracts
-import android.app.Activity
 
 enum class NavigationItem(val icon: ImageVector, val label: String, val route: String) {
     Schedule(Icons.Default.DateRange, "课程表", "schedule"),
     Status(Icons.Default.Apps, "状态", "status"),
-    Task(Icons.Default.Assignment, "任务", "task"),
     Profile(Icons.Default.Person, "我的", "profile"),
     Settings(Icons.Default.Settings, "设置", "settings")
 }
@@ -43,19 +43,23 @@ class MainActivity : ComponentActivity() {
     private var lastNavigationTime = 0L
     private val scheduleViewModel: ScheduleViewModel by viewModels { ScheduleViewModelFactory(this) }
     private val settingsViewModel: SettingsViewModel by viewModels()
-
-    private val editCourseLauncher = registerForActivityResult(
+    private val editCourseActivityLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val dataChanged = result.data?.getBooleanExtra("RESULT_COURSE_CHANGED", false) ?: false
-            if (dataChanged) {
-                // Force reload courses from database
-                scheduleViewModel.reloadCourses()
-            }
+            scheduleViewModel.refreshCourses()
         }
     }
+    private val usageStatsViewModel: UsageStatsViewModel by viewModels {
+        UsageStatsViewModelFactory(this)
+    }
 
+    override fun onResume() {
+        super.onResume()
+        scheduleViewModel.refreshCourses() // 刷新课程数据
+        usageStatsViewModel.checkPermission()
+    }
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -67,17 +71,6 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
-                    
-                    // 处理从小组件传递过来的导航指令
-                    val navigateTo = intent.getStringExtra("NAVIGATE_TO")
-                    LaunchedEffect(navigateTo) {
-                        if (navigateTo == "schedule") {
-                            navController.navigate("schedule") {
-                                launchSingleTop = true
-                                popUpTo("status") { saveState = true }
-                            }
-                        }
-                    }
 
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
@@ -114,18 +107,28 @@ class MainActivity : ComponentActivity() {
                                     courses = scheduleViewModel.courses.collectAsState().value,
                                     currentWeek = scheduleViewModel.currentWeek.collectAsState().value,
                                     onCourseClick = { course ->
-                                        editCourseLauncher.launch(ScheduleEditActivity.createIntent(this@MainActivity, course))
+                                        startActivity(ScheduleEditActivity.createIntent(this@MainActivity, course))
                                     },
                                     onWeekChange = { newWeek ->
                                         scheduleViewModel.setCurrentWeek(newWeek)
                                     },
                                     onAddCourse = {
-                                        editCourseLauncher.launch(ScheduleEditActivity.createIntent(this@MainActivity))
+                                        editCourseActivityLauncher.launch(ScheduleEditActivity.createIntent(this@MainActivity))
                                     }
                                 )
                             }
                             composable("status") {
+                                val hasPermission by usageStatsViewModel.hasPermission.collectAsState()
+                                val todayUsage = usageStatsViewModel.todayUsageTime.collectAsState()
+                                val secUsageTime = if (hasPermission)
+                                    usageStatsViewModel.getSecUsageTime(todayUsage.value)
+                                else
+                                    "没有授权呢宝宝，点击我让我去获取授权吧~"
+
                                 StatusScreen(
+                                    usageStatsViewModel = usageStatsViewModel,
+                                    isPermissionGot = hasPermission,
+                                    dailyUsageTime = secUsageTime as Long,
                                     onSportsClick = {
                                         Toast.makeText(this@MainActivity, "体育功能开发中", Toast.LENGTH_SHORT).show()
                                     },
@@ -134,6 +137,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
                             composable("profile") {
                                 ProfileScreen(
                                     onScheduleClick = {
@@ -155,16 +159,13 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("settings") {
                                 val settings by settingsViewModel.settings.collectAsState()
-
+                                
                                 SettingsScreen(
                                     settings = settings,
                                     onSettingsChange = { newSettings ->
                                         settingsViewModel.updateSettings(newSettings)
                                     }
                                 )
-                            }
-                            composable("task") {
-                                TaskScreen()
                             }
                         }
                     }

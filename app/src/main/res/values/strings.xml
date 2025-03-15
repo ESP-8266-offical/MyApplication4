@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">知澜</string>
+    <string name="app_channel_id">Zhilan_Notification</string>
+    <string name="app_notification_id">2333</string>
 </resources>

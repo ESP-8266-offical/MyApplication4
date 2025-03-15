@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.zhilan.data.DifyApiService
 import com.example.zhilan.data.DifyApiService.ChatRequest
 import com.example.zhilan.utils.NetworkUtils
-import com.example.zhilan.utils.NetworkMonitor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,8 +23,7 @@ private const val TAG = "AIChatViewModel"
 data class ChatMessage(
     val content: String,
     val isFromUser: Boolean,
-    val timestamp: Long = System.currentTimeMillis(),
-    val isRendered: Boolean = false  // 添加标记字段，用于跟踪消息是否已经渲染
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 class AIChatViewModel(private val context: Context) : ViewModel() {
@@ -38,53 +36,19 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
-    // 网络状态
-    private val _networkStatus = MutableStateFlow(NetworkUtils.NetworkQuality.UNAVAILABLE)
-    val networkStatus: StateFlow<NetworkUtils.NetworkQuality> = _networkStatus.asStateFlow()
-    
     // 重试计数
     private var retryCount = 0
-    private val MAX_RETRY_COUNT = 3
+    private val MAX_RETRY_COUNT = 2
     
     // 保存上一次对话的 conversationId 用于持续对话
     private var lastConversationId: String? = null
     
-    // 保存最后一次请求内容，用于网络恢复时重试
-    private var lastRequestContent: String? = null
-    
     // Dify API服务
     private val difyApiService = DifyApiService.create()
-    
-    // 网络监听器
-    private val networkMonitor = NetworkMonitor(context)
     
     init {
         // 添加欢迎消息
         addMessage("你好，我是知澜AI助手。有什么可以帮到你的吗？", false)
-        
-        // 启动网络监听
-        networkMonitor.startMonitoring()
-        
-        // 监听网络状态变化
-        viewModelScope.launch {
-            networkMonitor.isOnline.collect { isOnline: Boolean ->
-                if (isOnline) {
-                    // 检查网络质量
-                    checkNetworkQuality()
-                    // 如果有未完成的请求，尝试重新发送
-                    lastRequestContent?.let { content ->
-                        if (retryCount < MAX_RETRY_COUNT) {
-                            addMessage("网络已恢复，正在重新连接...", false)
-                            delay(1000) // 稍等片刻再重试
-                            makeApiRequest(content)
-                        }
-                        true // 返回Boolean值以匹配类型
-                    }
-                } else {
-                    _networkStatus.value = NetworkUtils.NetworkQuality.UNAVAILABLE
-                }
-            }
-        }
     }
     
     /**
@@ -107,22 +71,10 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
     }
     
     /**
-     * 检查网络质量
-     */
-    private fun checkNetworkQuality() {
-        NetworkUtils.checkNetworkQuality(context) { quality ->
-            _networkStatus.value = quality
-            Log.d(TAG, "当前网络质量: $quality")
-        }
-    }
-    
-    /**
      * 向AI发送API请求
      */
     private fun makeApiRequest(content: String) {
         _isLoading.value = true
-        lastRequestContent = content // 保存请求内容，用于网络恢复时重试
-        
         viewModelScope.launch {
             try {
                 Log.d(TAG, "开始发送API请求: $content")
@@ -137,10 +89,6 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
                 Log.d(TAG, "发送请求到Dify API: 参数=$requestParams")
                 
                 val response = difyApiService.chat(requestParams)
-                
-                // 请求成功，清除上次请求内容
-                lastRequestContent = null
-                retryCount = 0
                 
                 // 打印完整响应以便调试
                 Log.d(TAG, "收到完整响应: $response")
@@ -174,15 +122,7 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
                             addMessage("请求处理异常: ${e.message ?: "未知HTTP错误"}", false)
                         }
                     }
-                    is SocketTimeoutException -> {
-                        handleRetry(content, "连接超时，正在重试...")
-                    }
-                    is UnknownHostException -> {
-                        handleRetry(content, "无法解析服务器地址，正在重试...")
-                    }
-                    is IOException -> {
-                        handleRetry(content, "网络连接异常，正在重试...")
-                    }
+                    is IOException -> addMessage("网络连接异常，请检查网络设置", false)
                     else -> addMessage("处理请求时遇到问题: ${e.message ?: e.javaClass.simpleName}", false)
                 }
             } finally {
@@ -211,7 +151,7 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
      * 添加消息到消息列表
      */
     private fun addMessage(content: String, isFromUser: Boolean) {
-        val message = ChatMessage(content = content, isFromUser = isFromUser, isRendered = false)
+        val message = ChatMessage(content = content, isFromUser = isFromUser)
         _messages.value = _messages.value + message
     }
     
@@ -241,19 +181,4 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
-    
-    /**
-     * 更新消息的渲染状态
-     * @param index 消息索引
-     * @param isRendered 是否已渲染
-     */
-    fun updateMessageRenderedStatus(index: Int, isRendered: Boolean) {
-        if (index >= 0 && index < _messages.value.size) {
-            val updatedMessages = _messages.value.toMutableList()
-            val message = updatedMessages[index]
-            updatedMessages[index] = message.copy(isRendered = isRendered)
-            _messages.value = updatedMessages
-        }
-    }
-    
 }

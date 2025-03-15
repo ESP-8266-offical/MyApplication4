@@ -1,5 +1,13 @@
 package com.example.zhilan.ui.status
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
+import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,30 +28,74 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.zhilan.R
+import com.example.zhilan.UsageStatsViewModel
 import com.example.zhilan.model.WeekType
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import kotlin.math.atan
+import kotlin.math.sqrt
+
+/*@RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+fun ShowBackgroundNotification(context: Context, title: String, message: String) {
+    val channelId = context.getString(R.string.app_channel_id)
+    val notificationId = context.getString(R.string.app_notification_id).toInt()
+
+    // Create notification channel for Android 8.0+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channel = NotificationChannel(
+            channelId,
+            "App Notifications",
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    // Build the notification
+    val notification = NotificationCompat.Builder(context, channelId)
+        .setContentTitle(title)
+        .setContentText(message)
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .setAutoCancel(true)
+        .build()
+
+    // Show the notification
+    NotificationManagerCompat.from(context).notify(notificationId, notification)
+}*/
 
 /**
  * 状态页面
  * @param onSportsClick 体育点击事件回调
  * @param onGradeClick 成绩点击事件回调
+ * @param usageStatsViewModel 检测使用情况的ViewModel
+ * @param isPermissionGot 看看权限是否已获取，这里是查看使用情况的权限
+ * @param dailyUsageTime 今日使用时长
  */
+// TODO: dailyUsageTime应转移至函数内计算
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatusScreen(
+    usageStatsViewModel: UsageStatsViewModel,
+    isPermissionGot: Boolean,
+    dailyUsageTime: Long,
     onSportsClick: () -> Unit,
     onGradeClick: () -> Unit
 ) {
     // 创建AI聊天ViewModel
     val aiChatViewModel: AIChatViewModel = viewModel(factory = AIChatViewModelFactory(LocalContext.current))
-    
+
+    val context = LocalContext.current
+
     // 是否显示AI聊天界面
     var showAiChat by remember { mutableStateOf(false) }
     
@@ -103,8 +156,70 @@ fun StatusScreen(
             Spacer(modifier = Modifier.height(16.dp))
             // 今日课程
             TodayCourseSection()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Daily usage time section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = {
+                        if (!isPermissionGot) {
+                            Toast.makeText(
+                                context,
+                                "我会带你来到授权页面，在列表里找到我然后打开开关就可以啦~",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            usageStatsViewModel.requestPermission()
+                            // It's a bad idea to show notification to users.
+                            // Just useless.
+                            /*ShowBackgroundNotification(
+                                context,
+                                "知澜",
+                                "因为后台不能弹toast，所以只能通知啦，如果授权的时候提示危险不要害怕哦~"
+                            )*/
+                        }}),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = "今日勤奋值",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        /*Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = "使用时长",
+                            tint = MaterialTheme.colorScheme.primary
+                        )*/
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            // Limited below 1, to percentage.
+                            // Choose y = arctanx, its derivative gets lower with x getting bigger.
+                            // Also, need a gap
+                            text = (atan(dailyUsageTime.toDouble() / 10000) * 2 / Math.PI * 100).toString() + "%",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
+                }
+            }
         }
-        
+
+
         // AI聊天界面
         if (showAiChat) {
             Surface(
@@ -133,9 +248,11 @@ fun StatusScreen(
                 }
             }
         }
+
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TopSection() {
     val currentTime = LocalDateTime.now()

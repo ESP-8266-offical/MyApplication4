@@ -19,9 +19,9 @@ import androidx.compose.ui.unit.dp
 import com.example.zhilan.model.Course
 import com.example.zhilan.model.WeekType
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.example.zhilan.ui.schedule.ColorUtils.getGradientColors
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.zhilan.ui.theme.ZhiLanTheme
+import com.example.whucampus.ui.theme.ZhiLanTheme
+import com.example.zhilan.ui.schedule.ColorUtils.getGradientColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,6 +223,30 @@ fun ScheduleEditScreen(
             }
     
             Spacer(modifier = Modifier.height(16.dp))
+    
+            // 单双周选择
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                WeekType.values().forEach { type ->
+                    FilterChip(
+                        selected = weekType == type,
+                        onClick = { weekType = type },
+                        label = {
+                            Text(
+                                when (type) {
+                                    WeekType.ALL -> "每周"
+                                    WeekType.ODD -> "单周"
+                                    WeekType.EVEN -> "双周"
+                                }
+                            )
+                        }
+                    )
+                }
+            }
+    
+            Spacer(modifier = Modifier.weight(1f))
                 // 颜色选择
                 var selectedColorIndex by remember { mutableStateOf(course?.color ?: 0) }
                 var colorAlpha by remember { mutableStateOf(0.5f) }
@@ -273,30 +297,6 @@ fun ScheduleEditScreen(
                     onValueChange = { colorAlpha = it },
                     valueRange = 0.2f..0.8f
                 )
-            // 单双周选择
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                WeekType.values().forEach { type ->
-                    FilterChip(
-                        selected = weekType == type,
-                        onClick = { weekType = type },
-                        label = {
-                            Text(
-                                when (type) {
-                                    WeekType.ALL -> "每周"
-                                    WeekType.ODD -> "单周"
-                                    WeekType.EVEN -> "双周"
-                                }
-                            )
-                        }
-                    )
-                }
-            }
-    
-            Spacer(modifier = Modifier.weight(1f))
-    
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -332,7 +332,7 @@ fun ScheduleEditScreen(
                                 startWeek = startWeek,
                                 endWeek = endWeek,
                                 weekType = weekType,
-                                color = selectedColorIndex
+                                color = course?.color ?: 0
                             )
                         )
                     },
@@ -346,46 +346,20 @@ fun ScheduleEditScreen(
     }
     
 
-    }
     
-
-    
-    }
-
-@Preview(showBackground = true)
-@Composable
-fun ScheduleEditScreenEditPreview() {
-    ZhiLanTheme {
-        ScheduleEditScreen(
-            course = Course(
-                id = 1,
-                name = "数据结构",
-                teacher = "张教授",
-                location = "主教学楼 301",
-                dayOfWeek = 2,
-                startSection = 1,
-                endSection = 2,
-                startWeek = 1,
-                endWeek = 16,
-                weekType = WeekType.ALL,
-                color = 0
-            ),
-            onSave = {},
-            onCancel = {},
-            onDelete = {}
-        )
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun ScheduleEditScreenAddPreview() {
+@Preview
+fun ScheduleEditScreenPreview() {
     ZhiLanTheme {
-        ScheduleEditScreen(
-            course = null,
-            onSave = {},
-            onCancel = {},
-            onDelete = null
-        )
+        Surface {
+            ScheduleEditScreen(
+                course = null,
+                onSave = {},
+                onCancel = {}
+            )
+        }
     }
 }

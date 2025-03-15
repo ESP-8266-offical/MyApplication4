@@ -22,7 +22,12 @@ class ScheduleViewModel(private val context: Context) : ViewModel() {
     val currentWeek: StateFlow<Int> = _currentWeek.asStateFlow()
 
     val settings = ScheduleSettings()
-
+    fun refreshCourses() {
+        viewModelScope.launch {
+            // 从数据源重新加载课程
+            _courses.value = courseRepository.getAllCourses() // 或其他获取课程的方法
+        }
+    }
     init {
         viewModelScope.launch {
             val dbCourses = courseRepository.getAllCourses().value

@@ -14,7 +14,6 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import java.net.InetAddress
 import java.util.concurrent.TimeUnit
-import com.example.zhilan.utils.NetworkUtils
 
 private const val TAG = "DifyApiService"
 
@@ -88,51 +87,9 @@ interface DifyApiService {
                 }
             }
 
-            // 创建重试拦截器
-            val retryInterceptor = object : okhttp3.Interceptor {
-                override fun intercept(chain: okhttp3.Interceptor.Chain): okhttp3.Response {
-                    val request = chain.request()
-                    var response: okhttp3.Response? = null
-                    var exception: Exception? = null
-                    var retryCount = 0
-                    
-                    while (retryCount < NetworkUtils.MAX_RETRY_COUNT) {
-                        try {
-                            if (retryCount > 0) {
-                                Log.d(TAG, "正在进行第${retryCount}次重试...")
-                                Thread.sleep(NetworkUtils.RETRY_INTERVAL) // 重试前等待
-                            }
-                            
-                            response = chain.proceed(request.newBuilder().build())
-                            
-                            // 如果响应成功或者是客户端错误（4xx），不再重试
-                            if (response.isSuccessful || response.code in 400..499) {
-                                return response
-                            } else if (response.code in 500..599) {
-                                // 服务器错误，关闭响应并准备重试
-                                Log.w(TAG, "服务器错误(${response.code})，准备重试")
-                                response.close()
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "请求异常: ${e.javaClass.simpleName} - ${e.message}")
-                            exception = e
-                        }
-                        
-                        retryCount++
-                    }
-                    
-                    // 如果有最后一次的响应，返回它
-                    response?.let { return it }
-                    
-                    // 否则抛出最后捕获的异常，或创建一个新的IOException
-                    throw exception ?: java.io.IOException("多次重试后仍然失败")
-                }
-            }
-            
             val okHttpClient = OkHttpClient.Builder()
                 .dns(customDns)
                 .addInterceptor(logging)
-                .addInterceptor(retryInterceptor) // 添加重试拦截器
                 .addInterceptor { chain ->
                     val original = chain.request()
                     val request = original.newBuilder()
@@ -172,10 +129,9 @@ interface DifyApiService {
                     }
                     response
                 }
-                .connectTimeout(NetworkUtils.CONNECTION_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-                .readTimeout(NetworkUtils.READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-                .writeTimeout(NetworkUtils.WRITE_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-                .retryOnConnectionFailure(true) // 启用连接失败重试
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
                 .build()
 
             return Retrofit.Builder()

@@ -12,5 +12,7 @@ data class ScheduleCourse(
     val dayOfWeek: Int,
     val startTime: Int,
     val endTime: Int,
-    val color: Color
-)
+    val color: Color,
+    val startSection: Int = 0,
+    val endSection: Int = 0,
+    )
